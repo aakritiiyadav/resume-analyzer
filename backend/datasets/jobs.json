@@ -1,0 +1,27 @@
+[
+  {
+    "role": "Backend Developer",
+    "skills": ["java", "spring", "mysql", "docker", "git"],
+    "description": "Build scalable backend systems and REST APIs using Java and Spring Boot"
+  },
+  {
+    "role": "Full Stack Developer",
+    "skills": ["react", "nodejs", "mongodb", "javascript", "git"],
+    "description": "End-to-end web application development with React and Node"
+  },
+  {
+    "role": "Data Scientist",
+    "skills": ["python", "machine learning", "tensorflow", "sql", "pandas"],
+    "description": "Build ML models and analyze large datasets using Python"
+  },
+  {
+    "role": "DevOps Engineer",
+    "skills": ["docker", "kubernetes", "aws", "linux", "git"],
+    "description": "Manage CI/CD pipelines and cloud infrastructure"
+  },
+  {
+    "role": "Frontend Developer",
+    "skills": ["react", "javascript", "typescript", "css", "html"],
+    "description": "Build responsive and performant user interfaces"
+  }
+]
