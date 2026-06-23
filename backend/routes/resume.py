@@ -1,21 +1,24 @@
+from pydantic import BaseModel
+from typing import List, Dict, Any
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from services.parser import parse_resume, extract_email
-from services.nlp import analyze_resume
-from services.scorer import calculate_ats_score
+from db.database import collection
+from services.parser import parse_resume
 from services.matcher import match_jobs, get_skill_gap
-from db.database import resumes_collection
-import shutil
+from services.ats import calculate_ats_score
 import os
-import uuid
 
 router = APIRouter()
 
-UPLOAD_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "temp_uploads"
-)
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+class ResumeResponse(BaseModel):
+    resume_id: str
+    email: str
+    skills: List[str]
+    education: List[str]
+    experience_years: int
+    ats_score: Dict[str, Any]
+    matched_jobs: List[Dict[str, Any]]
+    skill_gap: List[str]
 
 
 @router.get("/")
@@ -25,68 +28,50 @@ def home():
 
 @router.post("/upload-resume")
 async def upload_resume(file: UploadFile = File(...)):
-    if not (
-        file.filename.lower().endswith(".pdf")
-        or file.filename.lower().endswith(".docx")
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="Only PDF and DOCX files allowed"
-        )
-
-    file_id = str(uuid.uuid4())
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        f"{file_id}_{file.filename}"
-    )
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
     try:
-        text = parse_resume(file_path, file.filename)
+        os.makedirs("temp_uploads", exist_ok=True)
 
-        if not text or len(text) < 50:
-            raise HTTPException(
-                status_code=400,
-                detail="Resume content not readable"
-            )
+        file_path = f"temp_uploads/{file.filename}"
 
-        email = extract_email(text)
-        analysis = analyze_resume(text)
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
 
-        ats = calculate_ats_score(
-            text,
-            analysis["skills"],
-            analysis["experience_years"]
-        )
+        parsed_data = parse_resume(file_path, file.filename)
 
-        jobs = match_jobs(text)
+        print("PARSED DATA:", parsed_data)
 
-        gap = get_skill_gap(
-            analysis["skills"],
-            jobs
-        )
+        matched_jobs = match_jobs(parsed_data["skills"])
+        print("MATCHED JOBS:", matched_jobs)
 
-        resume_doc = {
-            "resume_id": file_id,
-            "email": email,
-            "raw_text": text,
-            **analysis,
-            "ats_score": ats,
-            "matched_jobs": jobs,
-            "skill_gap": gap
+        skill_gap = get_skill_gap(parsed_data["skills"])
+        print("SKILL GAP:", skill_gap)
+
+        ats_score = calculate_ats_score(parsed_data)
+        print("ATS SCORE:", ats_score)
+
+        resume_data = {
+            "email": parsed_data.get("email", ""),
+            "skills": parsed_data.get("skills", []),
+            "education": parsed_data.get("education", []),
+            "experience_years": parsed_data.get("experience_years", 0),
+            "ats_score": ats_score,
+            "matched_jobs": matched_jobs,
+            "skill_gap": skill_gap
         }
 
-        await resumes_collection.insert_one(resume_doc)
+        inserted = collection.insert_one(resume_data)
 
-        resume_doc.pop("_id", None)
-        resume_doc.pop("raw_text", None)
-
-        return resume_doc
-
-    except HTTPException:
-        raise
+        return {
+            "resume_id": str(inserted.inserted_id),   # FIX HERE
+            "email": resume_data["email"],
+            "skills": resume_data["skills"],
+            "education": resume_data["education"],
+            "experience_years": resume_data["experience_years"],
+            "ats_score": resume_data["ats_score"],
+            "matched_jobs": resume_data["matched_jobs"],
+            "skill_gap": resume_data["skill_gap"]
+        }
 
     except Exception as e:
         raise HTTPException(
@@ -94,6 +79,19 @@ async def upload_resume(file: UploadFile = File(...)):
             detail=f"Analysis failed: {str(e)}"
         )
 
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+
+@router.get("/history")
+def get_history():
+    try:
+        resumes = list(collection.find())
+
+        for resume in resumes:
+            resume["_id"] = str(resume["_id"])
+
+        return resumes
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )

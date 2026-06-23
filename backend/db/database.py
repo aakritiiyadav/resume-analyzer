@@ -1,11 +1,18 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 
+# Load .env variables
 load_dotenv()
 
-client = AsyncIOMotorClient(os.getenv("MONGO_URI"))
-db = client.resumedb
+# MongoDB URI from .env
+MONGO_URI = os.getenv("MONGO_URI")
 
-resumes_collection = db["resumes"]
-jobs_collection = db["jobs"]
+# Create MongoDB client
+client = MongoClient(MONGO_URI)
+
+# Select database
+db = client["resumedb"]
+
+# Select collection
+collection = db["resumes"]
