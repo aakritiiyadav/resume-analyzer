@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   return (
@@ -22,13 +23,19 @@ const Hero = () => {
           </p>
 
           <div className="flex gap-4 mt-8">
-            <div className="bg-white p-5 border border-[#DCCBF0] shadow-md">
+            <Link
+              to="/upload"
+              className="bg-white p-5 border border-[#DCCBF0] shadow-md cursor-pointer hover:border-[#9B7BC4] hover:text-[#8E6CB3] hover:shadow-lg transition duration-300 block text-center font-medium"
+            >
               ATS Optimization
-            </div>
+            </Link>
 
-            <div className="bg-white p-5 border border-[#DCCBF0] shadow-md">
+            <Link
+              to="/upload"
+              className="bg-white p-5 border border-[#DCCBF0] shadow-md cursor-pointer hover:border-[#9B7BC4] hover:text-[#8E6CB3] hover:shadow-lg transition duration-300 block text-center font-medium"
+            >
               Smart Matching
-            </div>
+            </Link>
           </div>
         </div>
 
