@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import API from "../services/api";
+import { KeyRound, Mail, AlertCircle } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -43,58 +44,74 @@ const Login = () => {
   };
 
   return (
-    <motion.div
-      className="min-h-[80vh] flex items-center justify-center px-4"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md bg-[#FCFAFF] shadow-xl border border-[#E6DDF0] p-8 rounded-none"
+    <div className="min-h-[85vh] flex items-center justify-center px-4 relative">
+      <div className="absolute w-80 h-80 bg-purple-300/20 blur-3xl rounded-full pointer-events-none animate-float" />
+      
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, cubicBezier: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md"
       >
-        <h1 className="text-4xl font-bold mb-8 text-[#2D1E3E]">Login</h1>
-
-        {error && (
-          <div className="bg-red-50 text-red-600 border border-red-200 p-4 mb-4 text-sm">
-            {error}
-          </div>
-        )}
-
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border p-4 mb-4 rounded-none bg-white border-[#E6DDF0]"
-          required
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border p-4 mb-6 rounded-none bg-white border-[#E6DDF0]"
-          required
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-[#B497D6] text-white py-4 rounded-none hover:bg-[#9D7BC4] transition duration-300 disabled:bg-[#DCCBF0]"
+        <form
+          onSubmit={handleSubmit}
+          className="glass-card p-8 md:p-10 border border-white/70 shadow-2xl relative"
         >
-          {loading ? "Logging in..." : "Login"}
-        </button>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-extrabold text-[#2D1A47] mb-2">Welcome Back</h1>
+            <p className="text-xs text-gray-500 font-medium">Log in to manage and analyze your resumes</p>
+          </div>
 
-        <p className="mt-6 text-gray-600">
-          Don’t have an account?{" "}
-          <Link to="/signup" className="text-[#8E6CB3] hover:underline">
-            Signup
-          </Link>
-        </p>
-      </form>
-    </motion.div>
+          {error && (
+            <div className="bg-red-50 text-red-600 border border-red-200 p-4 mb-6 text-xs flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-5 mb-6">
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-300 h-4 w-4" />
+              <input
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full glass-input pl-11 pr-4 py-4 text-sm font-medium text-gray-800"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <KeyRound className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-300 h-4 w-4" />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full glass-input pl-11 pr-4 py-4 text-sm font-medium text-gray-800"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-purple text-white py-4 font-bold text-sm shadow-md hover:shadow-lg transition duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
+
+          <p className="mt-8 text-center text-xs text-gray-500 font-semibold">
+            Don’t have an account yet?{" "}
+            <Link to="/signup" className="text-[#7C3AED] hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </form>
+      </motion.div>
+    </div>
   );
 };
 
