@@ -5,14 +5,20 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=7860
 
-WORKDIR /app
+# Set up user with UID 1000 (standard for Hugging Face Spaces)
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
+
+WORKDIR $HOME/app
 
 # Copy requirements and install
-COPY backend/requirements.txt .
+COPY --chown=user backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source code
-COPY backend/ /app/
+COPY --chown=user backend/ $HOME/app/
 
 # Expose the default port for HF Spaces
 EXPOSE 7860
