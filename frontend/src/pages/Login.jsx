@@ -32,7 +32,14 @@ const Login = () => {
       });
 
       login(response.data.token, response.data.user);
-      navigate("/upload");
+      const temp = localStorage.getItem("tempResumeData");
+      if (temp) {
+        localStorage.setItem("resumeData", temp);
+        localStorage.removeItem("tempResumeData");
+        navigate("/dashboard");
+      } else {
+        navigate("/upload");
+      }
     } catch (err) {
       console.error(err);
       setError(

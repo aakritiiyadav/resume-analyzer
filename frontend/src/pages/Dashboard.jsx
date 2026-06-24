@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useContext } from "react";
 import jsPDF from "jspdf";
 import {
   PieChart,
@@ -33,6 +33,7 @@ import {
   BookOpen
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { AuthContext } from "../context/AuthContext";
 
 const COLORS = ["#7C3AED", "#9333EA", "#C084FC", "#E9D5FF", "#A78BFA"];
 
@@ -45,13 +46,18 @@ const LinkedinIcon = (props) => (
 );
 
 const Dashboard = () => {
+  const { token } = useContext(AuthContext);
+  const isLoggedIn = !!token;
+
   const data = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("resumeData") || "{}");
+      const savedToken = localStorage.getItem("authToken");
+      const key = savedToken ? "resumeData" : "tempResumeData";
+      return JSON.parse(localStorage.getItem(key) || "{}");
     } catch {
       return {};
     }
-  }, []);
+  }, [token]);
 
   const [jdText, setJdText] = useState("");
   const [jdResult, setJdResult] = useState(null);
@@ -106,7 +112,7 @@ const Dashboard = () => {
 
   const selectedTrack = careerPaths[detectTrack()] || [];
 
-  const jobRoles = [
+  const jobRoles = data.matched_jobs || [
     {
       role: "Frontend Developer",
       match: 82,
@@ -126,7 +132,17 @@ const Dashboard = () => {
       missing: ["Power BI", "Tableau"]
     }
   ];
-  const bestRole = jobRoles.reduce((a, b) => (a.match > b.match ? a : b));
+  // Helper mapping in case keys are "job_role" and "match_percentage" from backend
+  const normalizedRoles = jobRoles.map(j => ({
+    role: j.job_role || j.role,
+    match: j.match_percentage || j.match,
+    recommended: j.matched_skills || j.recommended || [],
+    missing: j.missing_skills || j.missing || []
+  }));
+
+  const bestRole = normalizedRoles.length > 0 
+    ? normalizedRoles.reduce((a, b) => (a.match > b.match ? a : b))
+    : { role: "Software Engineer", match: 75, recommended: [], missing: [] };
 
   const skillDatabase = [
     "html", "css", "javascript", "typescript", "react", "node", "express", "mongodb", "mysql", "sql",
@@ -249,33 +265,33 @@ const Dashboard = () => {
     setBulletOutput({ action, metrics, leadership });
   };
 
-  /* ---------------- SALARY ESTIMATOR & MARKET INSIGHTS ---------------- */
+  /* ---------------- SALARY ESTIMATOR & MARKET INSIGHTS (Rupees / LPA) ---------------- */
   const salaryData = useMemo(() => {
     const roleSalaryMap = {
-      "Frontend Developer": { base: 85, range: [70, 140] },
-      "Backend Developer": { base: 92, range: [80, 160] },
-      "Data Analyst": { base: 78, range: [65, 130] },
-      "Intern": { base: 45, range: [35, 60] },
-      "Junior Developer": { base: 65, range: [50, 85] },
-      "Software Engineer": { base: 95, range: [80, 165] },
-      "Senior Engineer": { base: 140, range: [110, 200] },
-      "Data Scientist": { base: 110, range: [90, 180] },
-      "ML Engineer": { base: 120, range: [95, 195] },
-      "Full Stack Developer": { base: 100, range: [85, 170] },
-      "System Architect": { base: 160, range: [130, 240] },
+      "Frontend Developer": { base: 8.5, range: [6.0, 14.0] },
+      "Backend Developer": { base: 9.2, range: [7.0, 16.0] },
+      "Data Analyst": { base: 7.8, range: [5.0, 12.0] },
+      "Intern": { base: 3.5, range: [2.5, 5.0] },
+      "Junior Developer": { base: 5.5, range: [4.0, 8.0] },
+      "Software Engineer": { base: 9.5, range: [7.0, 16.0] },
+      "Senior Engineer": { base: 18.0, range: [14.0, 28.0] },
+      "Data Scientist": { base: 12.0, range: [8.5, 20.0] },
+      "ML Engineer": { base: 13.0, range: [9.0, 22.0] },
+      "Full Stack Developer": { base: 10.5, range: [8.0, 18.0] },
+      "System Architect": { base: 22.0, range: [16.0, 35.0] },
     };
 
     const roleName = bestRole.role;
-    const info = roleSalaryMap[roleName] || { base: 90, range: [75, 150] };
+    const info = roleSalaryMap[roleName] || { base: 9.0, range: [7.0, 15.0] };
     const multiplier = 1 + Math.min(experience * 0.08, 0.9);
-    const estimatedMedian = Math.round(info.base * multiplier);
+    const estimatedMedian = (info.base * multiplier).toFixed(1);
     
-    const minSalary = info.range[0];
-    const maxSalary = info.range[1];
-    const finalMedian = Math.max(minSalary, Math.min(estimatedMedian, maxSalary));
+    const minSalary = info.range[0].toFixed(1);
+    const maxSalary = info.range[1].toFixed(1);
+    const finalMedian = Math.max(info.range[0], Math.min(parseFloat(estimatedMedian), info.range[1])).toFixed(1);
     
-    const rangeSpan = maxSalary - minSalary;
-    const progressPercent = Math.min(Math.max(((finalMedian - minSalary) / rangeSpan) * 100, 10), 95);
+    const rangeSpan = info.range[1] - info.range[0];
+    const progressPercent = Math.min(Math.max(((parseFloat(finalMedian) - info.range[0]) / rangeSpan) * 100, 10), 95);
     
     let marketLevel = "Entry Level";
     if (experience >= 7) marketLevel = "Principal/Senior";
@@ -288,7 +304,7 @@ const Dashboard = () => {
       percent: progressPercent,
       level: marketLevel,
       demand: experience > 5 ? "Extreme 🔥 (9.6/10)" : "Strong 🚀 (8.8/10)",
-      locations: ["Remote", "San Francisco", "New York", "Austin", "Seattle"].slice(0, 3 + (experience % 2)),
+      locations: ["Bangalore", "Pune", "Hyderabad", "Mumbai", "Remote"].slice(0, 3 + (experience % 2)),
       hotSkills: roleName.includes("Backend") || roleName.includes("Architect")
         ? ["Docker", "Kubernetes", "AWS IAM", "Redis"]
         : roleName.includes("Data") || roleName.includes("ML")
@@ -401,6 +417,106 @@ const Dashboard = () => {
     show: { opacity: 1, y: 0, transition: { duration: 0.5, cubicBezier: [0.16, 1, 0.3, 1] } }
   };
 
+  // ----------------- GATED FLOW FOR ANONYMOUS USERS -----------------
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F6FC] to-[#F5EFFF] p-6 md:p-12 relative">
+        <div className="max-w-7xl mx-auto">
+          
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <div>
+              <h1 className="text-4xl font-extrabold text-[#2D1A47]">
+                AI Resume Dashboard
+              </h1>
+              <p className="text-sm text-gray-500 font-medium mt-1">
+                Analysis based on uploaded resume content and industry matching standards.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => alert("Please log in or sign up to download reports.")}
+              className="flex items-center gap-2 px-6 py-3.5 bg-gray-200 text-gray-400 font-bold text-xs shadow-none cursor-not-allowed"
+              disabled
+            >
+              <Download className="h-4 w-4" /> Download PDF Report (Locked)
+            </button>
+          </div>
+
+          {/* Gated score output */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div className="glass-card p-8 border border-white/60 shadow-md text-center flex flex-col items-center justify-center col-span-3 md:col-span-1 min-h-[220px]">
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">ATS Score</p>
+              <h2 className="text-6xl font-extrabold text-emerald-600 mb-2">{atsScore}%</h2>
+              <span className="text-xs px-3 py-1 bg-emerald-50 text-emerald-700 font-bold border border-emerald-100 rounded-full">
+                {atsScore >= 70 ? "Good Fit 🚀" : "Needs Improvement 📚"}
+              </span>
+            </div>
+
+            <div className="glass-card p-8 border border-white/60 shadow-sm flex flex-col justify-center col-span-3 md:col-span-2">
+              <h3 className="text-xl font-bold text-[#2D1A47] mb-3 flex items-center gap-2">
+                <Brain className="h-6 w-6 text-[#7C3AED]" /> Initial AI Scan Completed!
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                We've parsed your resume using our advanced NLP and spaCy Named Entity Recognition (NER) pipeline. We found <strong className="text-[#7C3AED]">{totalSkills} skills</strong>, educational credentials, and calculated your ATS score.
+              </p>
+              <p className="text-xs text-gray-400 font-semibold">
+                Uploaded Email: {data.email || "Not detected"}
+              </p>
+            </div>
+          </div>
+
+          {/* Locked Dashboard Mock Interface */}
+          <div className="relative">
+            {/* Blurred Mock Content */}
+            <div className="grid md:grid-cols-2 gap-8 pointer-events-none select-none filter blur-[5px] opacity-25">
+              <div className="glass-panel p-6 border h-[300px]">
+                <h2 className="text-xl font-bold mb-4">Skill Distribution</h2>
+              </div>
+              <div className="glass-panel p-6 border h-[300px]">
+                <h2 className="text-xl font-bold mb-4">ATS Benchmark</h2>
+              </div>
+              <div className="glass-panel p-6 border h-[200px] md:col-span-2">
+                <h2 className="text-xl font-bold mb-4">Recommended Career Path</h2>
+              </div>
+            </div>
+
+            {/* Lock Gating Card Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center z-20">
+              <div className="glass-panel max-w-lg w-full p-8 md:p-10 border border-white/80 shadow-2xl text-center bg-white/75 backdrop-blur-md">
+                <div className="h-16 w-16 bg-purple-100 text-[#7C3AED] flex items-center justify-center rounded-full mx-auto mb-6 border border-purple-200">
+                  <Brain className="h-8 w-8 animate-pulse" />
+                </div>
+                <h3 className="text-2xl font-bold text-[#2D1A47] mb-3">
+                  Unlock Your Detailed Report
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed mb-8">
+                  Sign up or log in to access ML-based job matching fit, missing skill gaps, personalized career roadmaps, AI interview preparation questions, and LinkedIn optimization templates.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <a
+                    href="/signup"
+                    className="px-8 py-3.5 bg-gradient-purple text-white font-bold text-xs shadow-md hover:shadow-lg transition duration-300"
+                  >
+                    Create Free Account
+                  </a>
+                  <a
+                    href="/login"
+                    className="px-8 py-3.5 bg-white border border-purple-200 text-[#7C3AED] hover:bg-purple-50/50 font-bold text-xs transition duration-300"
+                  >
+                    Log In
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------- FULL AUTHENTICATED VIEW -----------------
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F6FC] to-[#F5EFFF] p-6 md:p-12">
       <div className="max-w-7xl mx-auto">
@@ -511,11 +627,11 @@ const Dashboard = () => {
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#2D1A47] mb-2">Education 🎓</h2>
-              <p className="text-base text-gray-700 font-medium leading-relaxed">
+              <div className="text-base text-gray-700 font-medium leading-relaxed">
                 {Array.isArray(data.education) && data.education.length > 0
-                  ? data.education[0]
+                  ? data.education.map((edu, idx) => <p key={idx}>{edu}</p>)
                   : "Education credentials not explicitly detected."}
-              </p>
+              </div>
             </div>
           </div>
 
@@ -552,7 +668,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ---------------- SALARY ESTIMATOR & MARKET INSIGHTS ---------------- */}
+        {/* ---------------- SALARY ESTIMATOR & MARKET INSIGHTS (Rupees / LPA) ---------------- */}
         <div className="glass-panel p-8 border border-white/80 shadow-md mb-10">
           <div className="flex items-center gap-2.5 mb-6">
             <div className="h-10 w-10 bg-purple-100 text-[#7C3AED] flex items-center justify-center rounded-xl shadow-sm">
@@ -570,16 +686,16 @@ const Dashboard = () => {
               <div>
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Estimated Annual Salary</span>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-4xl font-extrabold text-[#7C3AED]">${salaryData.median.toLocaleString()}</span>
+                  <span className="text-4xl font-extrabold text-[#7C3AED]">₹ {salaryData.median} LPA</span>
                   <span className="text-sm text-gray-500 font-bold">/ year (Median)</span>
                 </div>
                 
                 {/* Progress bar */}
                 <div className="relative pt-1 mt-6">
                   <div className="flex mb-2 items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    <span>Min: ${salaryData.min}K</span>
+                    <span>Min: ₹ {salaryData.min} LPA</span>
                     <span className="text-[#7C3AED] font-bold">Level: {salaryData.level}</span>
-                    <span>Max: ${salaryData.max}K</span>
+                    <span>Max: ₹ {salaryData.max} LPA</span>
                   </div>
                   <div className="overflow-hidden h-3.5 text-xs flex rounded-full bg-purple-100/50 border border-purple-200/30">
                     <div
@@ -911,7 +1027,7 @@ const Dashboard = () => {
             <Briefcase className="h-5 w-5 text-[#7C3AED]" /> Job Role Analysis & Skill Checks
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {jobRoles.map((job, index) => (
+            {normalizedRoles.map((job, index) => (
               <div key={index} className="bg-white/40 border border-purple-100/50 p-6 shadow-sm flex flex-col justify-between">
                 <div>
                   <h3 className="font-bold text-lg text-[#2D1A47] mb-1">{job.role}</h3>

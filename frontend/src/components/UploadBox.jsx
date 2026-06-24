@@ -52,9 +52,16 @@ const UploadBox = () => {
     const formData = new FormData();
     formData.append("file", file);
 
+    const token = localStorage.getItem("authToken");
+    const endpoint = token ? "/api/upload-resume" : "/api/upload-resume-public";
+
     try {
-      const response = await API.post("/api/upload-resume", formData);
-      localStorage.setItem("resumeData", JSON.stringify(response.data));
+      const response = await API.post(endpoint, formData);
+      if (token) {
+        localStorage.setItem("resumeData", JSON.stringify(response.data));
+      } else {
+        localStorage.setItem("tempResumeData", JSON.stringify(response.data));
+      }
       navigate("/dashboard");
     } catch (error) {
       console.error("Upload error:", error);
