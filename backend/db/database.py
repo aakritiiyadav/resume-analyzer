@@ -16,3 +16,6 @@ db = client["resumedb"]
 
 # Select collection
 collection = db["resumes"]
+
+# Select users collection
+users_collection = db["users"]

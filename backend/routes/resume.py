@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from db.database import collection
 from services.parser import parse_resume
 from services.matcher import match_jobs, get_skill_gap
 from services.ats import calculate_ats_score
+from routes.auth import get_current_user_id
 import os
 
 router = APIRouter()
@@ -27,7 +28,7 @@ def home():
 
 
 @router.post("/upload-resume")
-async def upload_resume(file: UploadFile = File(...)):
+async def upload_resume(file: UploadFile = File(...), user_id: str = Depends(get_current_user_id)):
     try:
         os.makedirs("temp_uploads", exist_ok=True)
 
@@ -51,6 +52,7 @@ async def upload_resume(file: UploadFile = File(...)):
         print("ATS SCORE:", ats_score)
 
         resume_data = {
+            "user_id": user_id,
             "email": parsed_data.get("email", ""),
             "skills": parsed_data.get("skills", []),
             "education": parsed_data.get("education", []),
@@ -81,9 +83,9 @@ async def upload_resume(file: UploadFile = File(...)):
 
 
 @router.get("/history")
-def get_history():
+def get_history(user_id: str = Depends(get_current_user_id)):
     try:
-        resumes = list(collection.find())
+        resumes = list(collection.find({"user_id": user_id}))
 
         for resume in resumes:
             resume["_id"] = str(resume["_id"])
