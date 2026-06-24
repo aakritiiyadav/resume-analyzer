@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const Footer = () => {
   return (
     <footer className="relative mt-24">
@@ -34,10 +36,18 @@ const Footer = () => {
               Quick Links
             </h3>
             <div className="space-y-2 text-white/80">
-              <p>Home</p>
-              <p>Upload</p>
-              <p>Dashboard</p>
-              <p>History</p>
+              <Link to="/" className="block hover:underline hover:text-white transition duration-300">
+                Home
+              </Link>
+              <Link to="/upload" className="block hover:underline hover:text-white transition duration-300">
+                Upload
+              </Link>
+              <Link to="/dashboard" className="block hover:underline hover:text-white transition duration-300">
+                Dashboard
+              </Link>
+              <Link to="/history" className="block hover:underline hover:text-white transition duration-300">
+                History
+              </Link>
             </div>
           </div>
 
@@ -46,10 +56,18 @@ const Footer = () => {
               Features
             </h3>
             <div className="space-y-2 text-white/80">
-              <p>ATS Scoring</p>
-              <p>Skill Analysis</p>
-              <p>Job Matching</p>
-              <p>Resume History</p>
+              <Link to="/upload" className="block hover:underline hover:text-white transition duration-300">
+                ATS Scoring
+              </Link>
+              <Link to="/upload" className="block hover:underline hover:text-white transition duration-300">
+                Skill Analysis
+              </Link>
+              <Link to="/upload" className="block hover:underline hover:text-white transition duration-300">
+                Job Matching
+              </Link>
+              <Link to="/history" className="block hover:underline hover:text-white transition duration-300">
+                Resume History
+              </Link>
             </div>
           </div>
 
