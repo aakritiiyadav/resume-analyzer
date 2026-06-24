@@ -91,6 +91,48 @@ const Dashboard = () => {
       ? "Almost Ready ⚡"
       : "Needs Improvement 📚";
 
+  const highestEducation = useMemo(() => {
+    const eduList = data.education || [];
+    if (!Array.isArray(eduList) || eduList.length === 0) {
+      return "Education credentials not explicitly detected.";
+    }
+
+    const ranks = {
+      "phd": 5, "doctorate": 5, "ph.d": 5,
+      "m.tech": 4, "mtech": 4, "master of technology": 4,
+      "mca": 4, "master of computer applications": 4,
+      "mba": 4, "master of business administration": 4,
+      "m.sc": 4, "msc": 4, "master of science": 4,
+      "ms": 4, "master": 4, "masters": 4,
+      "b.tech": 3, "btech": 3, "bachelor of technology": 3,
+      "bca": 3, "bachelor of computer applications": 3,
+      "b.sc": 3, "bsc": 3, "bachelor of science": 3,
+      "b.com": 3, "bcom": 3, "bachelor of commerce": 3,
+      "bachelor": 3, "bachelors": 3,
+      "diploma": 2,
+      "school": 1, "hsc": 1, "ssc": 1
+    };
+
+    let bestEdu = eduList[0];
+    let maxRank = 0;
+
+    for (const edu of eduList) {
+      const lower = edu.toLowerCase();
+      let foundRank = 0;
+      for (const [key, val] of Object.entries(ranks)) {
+        if (lower.includes(key)) {
+          foundRank = Math.max(foundRank, val);
+        }
+      }
+      if (foundRank > maxRank) {
+        maxRank = foundRank;
+        bestEdu = edu;
+      }
+    }
+
+    return bestEdu;
+  }, [data.education]);
+
   const skillPieData =
     data.skills?.map((skill, index) => ({
       name: skill,
@@ -627,11 +669,9 @@ const Dashboard = () => {
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#2D1A47] mb-2">Education 🎓</h2>
-              <div className="text-base text-gray-700 font-medium leading-relaxed">
-                {Array.isArray(data.education) && data.education.length > 0
-                  ? data.education.map((edu, idx) => <p key={idx}>{edu}</p>)
-                  : "Education credentials not explicitly detected."}
-              </div>
+              <p className="text-base text-gray-700 font-medium leading-relaxed">
+                {highestEducation}
+              </p>
             </div>
           </div>
 
